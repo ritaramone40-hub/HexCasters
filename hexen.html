@@ -187,7 +187,7 @@ async function joinRoom(){
   const st=await apiGet(code);
   if(!st){setLobbyMsg('Room not found. Check the code.');return;}
   if(st.p2){setLobbyMsg('Room is full.');return;}
-  myPlayer=2;st.p2=myName;gs=st;
+  myPlayer=2;st.p2=myName;st.ts=Date.now();gs=st;
   await apiPost(roomCode,gs);
   enterGame();connectSSE(roomCode);
 }
