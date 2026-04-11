@@ -149,7 +149,7 @@ function connectSSE(code){
       applyState();renderBtns();
     }
   };
-  evtSource.onerror=()=>evtSource.close();
+  evtSource.onerror=()=>{evtSource.close();setTimeout(()=>connectSSE(code),3000);};
 }
 function disconnectSSE(){if(evtSource){evtSource.close();evtSource=null;}}
 
