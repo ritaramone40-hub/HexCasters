@@ -252,7 +252,7 @@ function gpid(id){return pieces().find(p=>p.id===id);}
 function rm(id){gs.pieces=gs.pieces.filter(p=>p.id!==id);}
 
 // ── Move calculations ──────────────────────────────────────
-function walkMoves(p){if(p.immob>0)return[];return nbrs(p.col,p.row).filter(([c,r])=>!gp(c,r)).map(([c,r])=>({col:c,row:r,type:'move'}));}
+function walkMoves(p){if(p.immob>0)return[];if(p.type==='lancer'||p.type==='ninja')return[];return nbrs(p.col,p.row).filter(([c,r])=>!gp(c,r)).map(([c,r])=>({col:c,row:r,type:'move'}));}
 function lancerLaunches(p){
   if(p.immob>0)return[];const mv=[];
   for(const[nc,nr]of nbrs(p.col,p.row)){
