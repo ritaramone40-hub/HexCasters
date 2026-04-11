@@ -126,7 +126,7 @@ const HEX_R=30,COLS=9,ROWS=7;
 const WORDS=['WOLF','ROOK','JADE','IRON','MIST','DUSK','CROW','FERN','OPAL','PIKE','RUNE','SAGE','VEIL','WREN','BOLT','FLUX'];
 
 // ── App state ──────────────────────────────────────────────
-let myPlayer=0,myName='',roomCode='',gs=null,evtSource=null;
+let myPlayer=0,myName='',roomCode='',gs=null,pollTimer=null;
 let selected=null,actionMode=null,validMoves=[],validActions=[],hover=null;
 let ninjaPath=[],ninjaLeft=0;
 
@@ -140,18 +140,16 @@ async function apiPost(code,state){
   await fetch(`${SERVER}/room/${code}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(state)});
 }
 function connectSSE(code){
-  if(evtSource)evtSource.close();
-  evtSource=new EventSource(`${SERVER}/room/${code}/events`);
-  evtSource.onmessage=e=>{
-    const st=JSON.parse(e.data);
-    if(st.ts!==gs?.ts){
+  if(pollTimer)clearInterval(pollTimer);
+  pollTimer=setInterval(async()=>{
+    const st=await apiGet(code);
+    if(st&&st.ts!==gs?.ts){
       gs=st;selected=null;actionMode=null;validMoves=[];validActions=[];ninjaPath=[];ninjaLeft=0;
       applyState();renderBtns();
     }
-  };
-  evtSource.onerror=()=>{evtSource.close();setTimeout(()=>connectSSE(code),3000);};
+  },2000);
 }
-function disconnectSSE(){if(evtSource){evtSource.close();evtSource=null;}}
+function disconnectSSE(){if(pollTimer){clearInterval(pollTimer);pollTimer=null;}}
 
 // ── Helpers ────────────────────────────────────────────────
 function makeCode(){return WORDS[Math.random()*WORDS.length|0]+'-'+(10+Math.random()*89|0);}
