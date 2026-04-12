@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HEXEN</title>
+<title>Hex Casters</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Crimson+Pro:wght@300;400&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0e0c0a;--surface:#17140f;--panel:#1e1a14;--border:#3a3020;--border2:#5a4a30;--gold:#c8a84b;--gold2:#e8c87a;--p1l:#7ab8f5;--p2l:#f59078;--mark:#e8a020;--immob:#9060d0;--text:#d4c8a8;--muted:#7a6a50;}
@@ -68,7 +68,7 @@ canvas{display:block;cursor:pointer;border-radius:8px;max-width:100%;}
 <body>
 
 <div id="lobby">
-  <div class="logo"><h1>HEXEN</h1><p>A game of shadows &amp; annihilation</p></div>
+  <div class="logo"><h1>Hex Casters</h1><p>A game of shadows &amp; annihilation</p></div>
   <div class="lobby-card">
     <h2>New Game</h2>
     <div class="field"><label>Your Name</label><input id="player-name" type="text" placeholder="Enter your name" maxlength="20"></div>
@@ -82,7 +82,7 @@ canvas{display:block;cursor:pointer;border-radius:8px;max-width:100%;}
 
 <div id="game">
   <div class="game-header">
-    <div><div class="game-title">HEXEN</div><div class="room-code">Room: <span id="room-display"></span></div></div>
+    <div><div class="game-title">Hex Casters</div><div class="room-code">Room: <span id="room-display"></span></div></div>
     <div style="display:flex;gap:8px">
       <button class="hdr-btn" onclick="copyCode()">Copy code</button>
       <button class="hdr-btn" onclick="backToLobby()">Leave</button>
@@ -268,7 +268,7 @@ function lancerRays(p){
 }
 function markTargets(p){if(p.immob>0)return[];return nbrs(p.col,p.row).map(([c,r])=>({col:c,row:r,o:gp(c,r)})).filter(({o})=>o&&o.pl!==p.pl&&!o.marked).map(({col,row})=>({col,row,type:'attack'}));}
 function defuseTargets(p){if(p.immob>0)return[];return nbrs(p.col,p.row).map(([c,r])=>({col:c,row:r,o:gp(c,r)})).filter(({o})=>o&&o.pl===p.pl&&o.marked).map(({col,row})=>({col,row,type:'move'}));}
-function detTargets(p){if(p.immob>0)return[];return nbrs(p.col,p.row).map(([c,r])=>({col:c,row:r,o:gp(c,r)})).filter(({o})=>o&&o.marked).map(({col,row})=>({col,row,type:'attack'}));}
+function detTargets(p){if(p.immob>0)return[];return nbrs(p.col,p.row).map(([c,r])=>({col:c,row:r,o:gp(c,r)})).filter(({o})=>o&&o.marked&&o.marked!==p.type).map(({col,row})=>({col,row,type:'attack'}));}
 function ninjaSteps(p,path){const last=path.length?path[path.length-1]:[p.col,p.row];return nbrs(last[0],last[1]).map(([c,r])=>({col:c,row:r,type:'move'}));}
 function ninjaSources(p,path){const last=path.length?path[path.length-1]:[p.col,p.row];return nbrs(last[0],last[1]).map(([c,r])=>gp(c,r)).filter(Boolean).filter(x=>x.id!==p.id);}
 function borrowTargets(ninja,src,ec,er){const f={...src,col:ec,row:er,pl:ninja.pl,immob:0};if(src.type==='lancer')return lancerRays(f);if(src.type==='matter'||src.type==='antimatter')return[...markTargets(f),...defuseTargets(f),...detTargets(f)];return[];}
@@ -308,7 +308,7 @@ function showPromo(){
 }
 async function doMove(p,col,row){p.col=col;p.row=row;addLog(`P${p.pl} ${pLabel(p)} moves`);await checkPromo(p);endTurn();}
 async function doLaunch(p,col,row){const t=gp(col,row);if(t&&t.pl!==p.pl){addLog(`Lancer destroys ${pLabel(t)}!`);rm(t.id);rm(p.id);addLog(`Lancer self-destructs!`);}else{p.col=col;p.row=row;}endTurn();}
-function doMark(p,col,row){const t=gp(col,row);if(t){t.marked=true;addLog(`P${p.pl} marks ${pLabel(t)}`);}endTurn();}
+function doMark(p,col,row){const t=gp(col,row);if(t){t.marked=p.type;addLog(`P${p.pl} marks ${pLabel(t)}`);}endTurn();}
 function doDefuse(p,col,row){const t=gp(col,row);if(t){t.marked=false;addLog(`P${p.pl} defuses ${pLabel(t)}`);}endTurn();}
 function doDetonate(p,col,row){const t=gp(col,row);if(!t||!t.marked)return;addLog(`P${p.pl} DETONATES ${pLabel(t)}!`);explode(t,p);endTurn();}
 function doFreeze(p,col,row){const t=gp(col,row);if(t){t.immob=2;addLog(`P${p.pl} freezes ${pLabel(t)} ★`);}endTurn();}
@@ -317,7 +317,7 @@ async function doNinja(ninja,src,tc,tr,ec,er){
   if(src.type==='lancer'){const t=gp(tc,tr);if(t){t.immob=2;addLog(`Ninja freezes ${pLabel(t)} ★`);}}
   else if(src.type==='matter'||src.type==='antimatter'){
     const t=gp(tc,tr);
-    if(t){if(!t.marked&&t.pl!==ninja.pl){t.marked=true;addLog(`Ninja marks ${pLabel(t)}`);}else if(t.marked&&t.pl===ninja.pl){t.marked=false;addLog(`Ninja defuses ${pLabel(t)}`);}else if(t.marked){addLog(`Ninja detonates ${pLabel(t)}!`);explode(t,null);}}
+    if(t){if(!t.marked&&t.pl!==ninja.pl){t.marked=src.type;addLog(`Ninja marks ${pLabel(t)}`);}else if(t.marked&&t.pl===ninja.pl){t.marked=false;addLog(`Ninja defuses ${pLabel(t)}`);}else if(t.marked&&t.marked!==src.type){addLog(`Ninja detonates ${pLabel(t)}!`);explode(t,null);}}
   }
   await checkPromo(ninja);endTurn();
 }
