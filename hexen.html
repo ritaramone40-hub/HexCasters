@@ -277,7 +277,7 @@ function lancerRays(p){
   return t;
 }
 function markTargets(p){if(p.immob>0)return[];return nbrs(p.col,p.row).map(([c,r])=>({col:c,row:r,o:gp(c,r)})).filter(({o})=>o&&o.pl!==p.pl&&!o.marked).map(({col,row})=>({col,row,type:'attack'}));}
-function detTargets(p){if(p.immob>0)return[];return nbrs(p.col,p.row).map(([c,r])=>({col:c,row:r,o:gp(c,r)})).filter(({o})=>o&&o.marked&&o.marked!==p.type).map(({col,row})=>({col,row,type:'attack'}));}
+function detTargets(p){if(p.immob>0)return[];return nbrs(p.col,p.row).map(([c,r])=>({col:c,row:r,o:gp(c,r)})).filter(({o})=>o&&o.marked&&(o.type!=='matter'&&o.type!=='antimatter'||o.type!==p.type)).map(({col,row})=>({col,row,type:'attack'}));}
 function ninjaSteps(p,path){const last=path.length?path[path.length-1]:[p.col,p.row];return nbrs(last[0],last[1]).map(([c,r])=>({col:c,row:r,type:'move'}));}
 function ninjaSources(p,path){const last=path.length?path[path.length-1]:[p.col,p.row];return nbrs(last[0],last[1]).map(([c,r])=>gp(c,r)).filter(Boolean).filter(x=>x.id!==p.id);}
 function borrowTargets(ninja,src,ec,er){const f={...src,col:ec,row:er,pl:ninja.pl,immob:0};if(src.type==='lancer')return lancerRays(f);if(src.type==='matter'||src.type==='antimatter')return[...markTargets(f),...detTargets(f)];return[];}
@@ -317,7 +317,7 @@ function showPromo(){
 }
 async function doMove(p,col,row){p.col=col;p.row=row;addLog(`P${p.pl} ${pLabel(p)} moves`);await checkPromo(p);endTurn();}
 async function doLaunch(p,col,row){const t=gp(col,row);if(t&&t.pl!==p.pl){addLog(`Lancer destroys ${pLabel(t)}!`);rm(t.id);rm(p.id);addLog(`Lancer self-destructs!`);}else{p.col=col;p.row=row;}endTurn();}
-function doMark(p,col,row){const t=gp(col,row);if(t){t.marked=p.type;addLog(`P${p.pl} marks ${pLabel(t)}`);}endTurn();}
+function doMark(p,col,row){const t=gp(col,row);if(t){t.marked=true;addLog(`P${p.pl} marks ${pLabel(t)}`);}endTurn();}
 function doDetonate(p,col,row){const t=gp(col,row);if(!t||!t.marked)return;addLog(`P${p.pl} DETONATES ${pLabel(t)}!`);explode(t,p);endTurn();}
 function doFreeze(p,col,row){const t=gp(col,row);if(t){t.immob=2;addLog(`P${p.pl} freezes ${pLabel(t)} ★`);}endTurn();}
 async function doNinja(ninja,src,tc,tr,ec,er){
@@ -325,7 +325,7 @@ async function doNinja(ninja,src,tc,tr,ec,er){
   if(src.type==='lancer'){const t=gp(tc,tr);if(t){t.immob=2;addLog(`Ninja freezes ${pLabel(t)} ★`);}}
   else if(src.type==='matter'||src.type==='antimatter'){
     const t=gp(tc,tr);
-    if(t){if(!t.marked&&t.pl!==ninja.pl){t.marked=src.type;addLog(`Ninja marks ${pLabel(t)}`);}else if(t.marked&&t.marked!==src.type){addLog(`Ninja detonates ${pLabel(t)}!`);explode(t,null);}}
+    if(t){if(!t.marked&&t.pl!==ninja.pl){t.marked=true;addLog(`Ninja marks ${pLabel(t)}`);}else if(t.marked&&(t.type!=='matter'&&t.type!=='antimatter'||t.type!==src.type)){addLog(`Ninja detonates ${pLabel(t)}!`);explode(t,null);}}
   }
   await checkPromo(ninja);endTurn();
 }
