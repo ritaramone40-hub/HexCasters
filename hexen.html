@@ -399,6 +399,7 @@ async function handleClick(col,row){
     }return;
   }
   if(selected&&validMoves.length){const mv=validMoves.find(m=>m.col===col&&m.row===row);if(mv){const sel=gpid(selected);if(sel)doMove(sel,col,row);return;}}
+  document.getElementById('status-text').title='click('+col+','+row+') piece='+(piece?piece.type+'pl'+piece.pl:'none')+' myP='+myPlayer;
   if(piece&&piece.pl===myPlayer&&isMyTurn()){
     selected=piece.id;actionMode=null;ninjaPath=[];ninjaLeft=0;
     validMoves=walkMoves(piece);validActions=[];renderBtns();updateSelUI();draw();
