@@ -105,7 +105,8 @@ canvas{display:block;cursor:pointer;border-radius:8px;max-width:100%;}
         <h3>Legend</h3>
         <div class="li"><div class="ld" style="background:var(--p1l)"></div>Blue = Player 1</div>
         <div class="li"><div class="ld" style="background:var(--p2l)"></div>Coral = Player 2</div>
-        <div class="li"><div class="ld" style="border:2px dashed var(--mark);background:none"></div>Marked ●</div>
+        <div class="li"><div class="ld" style="border:2px dashed #e8a020;background:none"></div>Marked by M+</div>
+        <div class="li"><div class="ld" style="border:2px dashed #c040c0;background:none"></div>Marked by A−</div>
         <div class="li"><div class="ld" style="border:2px dashed var(--immob);background:none"></div>Frozen ★</div>
         <div style="font-size:10px;color:var(--muted);margin-top:6px;line-height:1.7">M+ = Matter · A− = Antimatter<br>L = Lancer · N = Ninja</div>
       </div>
@@ -441,8 +442,8 @@ function draw(){
 }
 function drawPiece(p,x,y){
   const cl=p.pl===1?'#4a8fd4':'#d4604a';const cll=p.pl===1?'#7ab8f5':'#f59078';const r=HEX_R*0.5;
-  if(p.marked){ctx.beginPath();ctx.arc(x,y,r+5,0,Math.PI*2);ctx.strokeStyle='#e8a020';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);}
-  if(p.immob>0){ctx.beginPath();ctx.arc(x,y,r+8,0,Math.PI*2);ctx.strokeStyle='#9060d0';ctx.lineWidth=1.5;ctx.setLineDash([2,4]);ctx.stroke();ctx.setLineDash([]);}
+  if(p.marked){ctx.beginPath();ctx.arc(x,y,r+5,0,Math.PI*2);ctx.strokeStyle=p.marked==='antimatter'?'#c040c0':'#e8a020';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);}
+  if(p.immob>0){ctx.beginPath();ctx.arc(x,y,r+8,0,Math.PI*2);ctx.strokeStyle='#9060d0';ctx.lineWidth=2.5;ctx.setLineDash([]);ctx.stroke();}
   ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=cl+'22';ctx.fill();ctx.strokeStyle=cl;ctx.lineWidth=1.5;ctx.stroke();
   ctx.fillStyle=cll;ctx.textAlign='center';ctx.textBaseline='middle';
   const lbl={lancer:'L',ninja:'N',matter:'M',antimatter:'A'}[p.type]||'?';
