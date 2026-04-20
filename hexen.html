@@ -226,7 +226,7 @@ function applyState(){
     txt.textContent=wn+' wins!';showWinner(wn);
   } else {
     dot.style.background=gs.turn===1?'var(--p1l)':'var(--p2l)';
-    txt.textContent=gs.turn===myPlayer?'Your turn':pName(gs.turn)+"'s turn";
+    txt.textContent=(gs.turn===myPlayer?'Your turn':pName(gs.turn)+"'s turn")+' [me=P'+myPlayer+' turn='+gs.turn+']';
   }
   document.getElementById('log-entries').innerHTML=gs.log.slice(0,20).map(l=>`<div>${l}</div>`).join('');
   updateSelUI();draw();
