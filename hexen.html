@@ -226,7 +226,7 @@ function applyState(){
     txt.textContent=wn+' wins!';showWinner(wn);
   } else {
     dot.style.background=gs.turn===1?'var(--p1l)':'var(--p2l)';
-    txt.textContent=(gs.turn===myPlayer?'Your turn':pName(gs.turn)+"'s turn")+' [me=P'+myPlayer+' turn='+gs.turn+']';
+    txt.textContent=gs.turn===myPlayer?'Your turn':pName(gs.turn)+"'s turn";
   }
   document.getElementById('log-entries').innerHTML=gs.log.slice(0,20).map(l=>`<div>${l}</div>`).join('');
   updateSelUI();draw();
@@ -333,12 +333,12 @@ async function doNinja(ninja,src,tc,tr,ec,er){
 // ── UI ─────────────────────────────────────────────────────
 function updateSelUI(){
   const sn=document.getElementById('sel-name'),sm=document.getElementById('sel-meta');
-  if(selected){const p=gpid(selected);if(p){sn.textContent=pLabel(p);sn.style.color=p.pl===1?'var(--p1l)':'var(--p2l)';sm.textContent=[(p.marked?'● marked':''),(p.immob>0?'★ frozen':'')].filter(Boolean).join(' · ')||'Ready';}}
+  if(selected!==null){const p=gpid(selected);if(p){sn.textContent=pLabel(p);sn.style.color=p.pl===1?'var(--p1l)':'var(--p2l)';sm.textContent=[(p.marked?'● marked':''),(p.immob>0?'★ frozen':'')].filter(Boolean).join(' · ')||'Ready';}}
   else{sn.textContent='—';sn.style.color='var(--text)';sm.textContent='';}
 }
 function renderBtns(){
   const el=document.getElementById('action-btns');el.innerHTML='';
-  if(!selected||!isMyTurn())return;
+  if(selected===null||!isMyTurn())return;
   const p=gpid(selected);if(!p||p.pl!==myPlayer)return;
   function btn(label,mode,targets){
     if(!targets.length)return;
@@ -346,7 +346,7 @@ function renderBtns(){
     b.onclick=()=>{actionMode=mode;validActions=targets;document.querySelectorAll('.action-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');draw();};
     el.appendChild(b);
   }
-  if(p.type==='lancer'){const ll=lancerLaunches(p),lr=lancerRays(p);console.log('LANCER pl'+p.pl+' ('+p.col+','+p.row+') launches:',ll,'rays:',lr,'row0:',gs.pieces.filter(q=>q.row===0));btn('🚀 Launch','launch',ll);btn('★ Freeze ray','freeze',lr);}
+  if(p.type==='lancer'){btn('🚀 Launch','launch',lancerLaunches(p));btn('★ Freeze ray','freeze',lancerRays(p));}
   if(p.type==='matter'||p.type==='antimatter'){btn('● Mark','mark',markTargets(p));btn('💥 Detonate','detonate',detTargets(p));}
   if(p.type==='ninja'){
     if(ninjaLeft===0&&!ninjaPath.length){
@@ -398,8 +398,7 @@ async function handleClick(col,row){
       else{validActions=ninjaSteps(np,ninjaPath);renderBtns();draw();}
     }return;
   }
-  if(selected&&validMoves.length){const mv=validMoves.find(m=>m.col===col&&m.row===row);if(mv){const sel=gpid(selected);if(sel)doMove(sel,col,row);return;}}
-  document.getElementById('status-text').title='click('+col+','+row+') piece='+(piece?piece.type+'pl'+piece.pl:'none')+' myP='+myPlayer;
+  if(selected!==null&&validMoves.length){const mv=validMoves.find(m=>m.col===col&&m.row===row);if(mv){const sel=gpid(selected);if(sel)doMove(sel,col,row);return;}}
   if(piece&&piece.pl===myPlayer&&isMyTurn()){
     selected=piece.id;actionMode=null;ninjaPath=[];ninjaLeft=0;
     validMoves=walkMoves(piece);validActions=[];renderBtns();updateSelUI();draw();
