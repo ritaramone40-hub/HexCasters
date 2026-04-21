@@ -96,6 +96,8 @@ When a pawn reaches any hex on the opponent's back row, the controlling player i
 
 Note: A Lancer can never reach the opponent's back row under its own movement — it cannot stop freely and will self-destruct or fly off before arriving.
 
+**Marks on promotion:** Any mark the promoting pawn carried is cleared upon promotion. The new piece — whether Ninja, Lancer, or fresh pawn — always enters unmarked.
+
 ---
 
 ## Strategic Notes
