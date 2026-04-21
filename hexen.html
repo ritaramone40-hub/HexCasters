@@ -303,9 +303,22 @@ async function checkPromo(piece){
   if(piece.type!=='matter'&&piece.type!=='antimatter')return;
   if(piece.row!==(piece.pl===1?0:6))return;
   const c=await showPromo();
-  if(c==='ninja')piece.type='ninja';
-  else if(c==='lancer')piece.type='lancer';
-  else piece.type=piece.type==='matter'?'antimatter':'matter';
+  if(c==='ninja'){piece.type='ninja';}
+  else if(c==='lancer'){piece.type='lancer';}
+  else {
+    const newType=await showPawnType();
+    const backRow=piece.pl===1?6:0;
+    const empties=[];
+    for(let col=0;col<COLS;col++){if(!gp(col,backRow))empties.push(col);}
+    piece.col=empties.length>0?empties[0]:piece.col;piece.row=backRow;piece.marked=false;
+    if(empties.length>1){
+      const newId=gs.pieces.reduce((mx,p)=>Math.max(mx,p.id),0)+1;
+      gs.pieces.push({id:newId,type:newType,pl:piece.pl,col:empties[1],row:backRow,marked:false,immob:0});
+      addLog(`P${piece.pl} spawns new ${newType} pawn!`);
+    }
+    addLog(`Pawn promotes → 2 pawns on home row!`);
+    draw();return;
+  }
   piece.marked=false;
   addLog(`Pawn promotes → ${c}!`);
   draw();
@@ -313,7 +326,15 @@ async function checkPromo(piece){
 function showPromo(){
   return new Promise(r=>{
     const ov=document.createElement('div');ov.className='promo-overlay';
-    ov.innerHTML=`<div class="promo-box"><h2>Promotion!</h2><p>Pawn reached the back row</p><div class="promo-btns"><button class="promo-btn" data-v="ninja">Rogue Ninja — 6 steps, shadow power</button><button class="promo-btn" data-v="lancer">Lancer — momentum weapon, freeze ray</button><button class="promo-btn" data-v="pawn">New Pawn — spawn opposite type</button></div></div>`;
+    ov.innerHTML=`<div class="promo-box"><h2>Promotion!</h2><p>Pawn reached the back row</p><div class="promo-btns"><button class="promo-btn" data-v="ninja">Rogue Ninja — 6 steps, shadow power</button><button class="promo-btn" data-v="lancer">Lancer — momentum weapon, freeze ray</button><button class="promo-btn" data-v="pawn">Spawn New Pawn — both return to home row</button></div></div>`;
+    ov.querySelectorAll('.promo-btn').forEach(b=>b.onclick=()=>{ov.remove();r(b.dataset.v);});
+    document.body.appendChild(ov);
+  });
+}
+function showPawnType(){
+  return new Promise(r=>{
+    const ov=document.createElement('div');ov.className='promo-overlay';
+    ov.innerHTML=`<div class="promo-box"><h2>New Pawn Type</h2><p>Choose the type for your new pawn</p><div class="promo-btns"><button class="promo-btn" data-v="matter">Matter (M+)</button><button class="promo-btn" data-v="antimatter">Antimatter (A−)</button></div></div>`;
     ov.querySelectorAll('.promo-btn').forEach(b=>b.onclick=()=>{ov.remove();r(b.dataset.v);});
     document.body.appendChild(ov);
   });

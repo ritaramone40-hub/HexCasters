@@ -92,7 +92,7 @@ When a pawn reaches any hex on the opponent's back row, the controlling player i
 
 1. **Promote to Ninja** — gain a mobile shadow striker
 2. **Promote to Lancer** — gain a kamikaze missile or immobilize ray
-3. **Spawn a new Pawn** — place a fresh Matter or Antimatter pawn (player's choice) on the promotion hex
+3. **Spawn a new Pawn** — the promoting pawn and a brand-new pawn (player's choice of Matter or Antimatter) both return to the player's own back row. Net gain: one extra pawn. Neither pawn stays at the opponent's back row.
 
 Note: A Lancer can never reach the opponent's back row under its own movement — it cannot stop freely and will self-destruct or fly off before arriving.
 
