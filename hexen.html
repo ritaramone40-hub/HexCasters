@@ -314,14 +314,15 @@ async function checkPromo(piece,origCol,origRow){
   if(c==='ninja'){piece.type='ninja';}
   else if(c==='lancer'){piece.type='lancer';}
   else {
-    if(origCol!=null){piece.col=origCol;piece.row=origRow;}
     piece.marked=false;
     const newType=await showPawnType();
+    if(origCol!=null&&!gp(origCol,origRow)){piece.col=origCol;piece.row=origRow;}
+    else{const p0=findSpawnPos(piece.pl);if(p0){piece.col=p0[0];piece.row=p0[1];}}
     const pos=findSpawnPos(piece.pl);
     if(pos){
       const newId=gs.pieces.reduce((mx,p)=>Math.max(mx,p.id),0)+1;
       gs.pieces.push({id:newId,type:newType,pl:piece.pl,col:pos[0],row:pos[1],marked:false,immob:0});
-      addLog(`P${piece.pl} spawns new ${newType} pawn! (Promoting pawn returns to origin)`);
+      addLog(`P${piece.pl} spawns new ${newType} pawn!`);
     } else {
       addLog(`Board is completely full — no spawn for you!`);
     }
