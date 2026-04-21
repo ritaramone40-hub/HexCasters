@@ -299,24 +299,32 @@ function explode(target,detonator){
   if(detonator&&gpid(detonator.id)){rm(detonator.id);addLog(`💥 ${pLabel(detonator)} dies!`);}
   for(const a of adj)if(gpid(a.id)){addLog(`🔗 Chain!`);explode(a,null);}
 }
-async function checkPromo(piece){
+function findSpawnPos(player){
+  const center=Math.floor(COLS/2);
+  const cols=[];
+  for(let d=0;d<=Math.floor(COLS/2);d++){if(center+d<COLS)cols.push(center+d);if(d>0&&center-d>=0)cols.push(center-d);}
+  const startRow=player===1?ROWS-1:0,dr=player===1?-1:1;
+  for(let off=0;off<ROWS;off++){const r=startRow+off*dr;if(r<0||r>=ROWS)break;for(const c of cols){if(!gp(c,r))return[c,r];}}
+  return null;
+}
+async function checkPromo(piece,origCol,origRow){
   if(piece.type!=='matter'&&piece.type!=='antimatter')return;
   if(piece.row!==(piece.pl===1?0:6))return;
   const c=await showPromo();
   if(c==='ninja'){piece.type='ninja';}
   else if(c==='lancer'){piece.type='lancer';}
   else {
+    if(origCol!=null){piece.col=origCol;piece.row=origRow;}
+    piece.marked=false;
     const newType=await showPawnType();
-    const backRow=piece.pl===1?6:0;
-    const empties=[];
-    for(let col=0;col<COLS;col++){if(!gp(col,backRow))empties.push(col);}
-    piece.col=empties.length>0?empties[0]:piece.col;piece.row=backRow;piece.marked=false;
-    if(empties.length>1){
+    const pos=findSpawnPos(piece.pl);
+    if(pos){
       const newId=gs.pieces.reduce((mx,p)=>Math.max(mx,p.id),0)+1;
-      gs.pieces.push({id:newId,type:newType,pl:piece.pl,col:empties[1],row:backRow,marked:false,immob:0});
-      addLog(`P${piece.pl} spawns new ${newType} pawn!`);
+      gs.pieces.push({id:newId,type:newType,pl:piece.pl,col:pos[0],row:pos[1],marked:false,immob:0});
+      addLog(`P${piece.pl} spawns new ${newType} pawn! (Promoting pawn returns to origin)`);
+    } else {
+      addLog(`Board is completely full — no spawn for you!`);
     }
-    addLog(`Pawn promotes → 2 pawns on home row!`);
     draw();return;
   }
   piece.marked=false;
@@ -339,7 +347,7 @@ function showPawnType(){
     document.body.appendChild(ov);
   });
 }
-async function doMove(p,col,row){p.col=col;p.row=row;addLog(`P${p.pl} ${pLabel(p)} moves`);await checkPromo(p);endTurn();}
+async function doMove(p,col,row){const oc=p.col,or=p.row;p.col=col;p.row=row;addLog(`P${p.pl} ${pLabel(p)} moves`);await checkPromo(p,oc,or);endTurn();}
 async function doLaunch(p,col,row){const t=gp(col,row);if(t&&t.pl!==p.pl){addLog(`Lancer destroys ${pLabel(t)}!`);rm(t.id);rm(p.id);addLog(`Lancer self-destructs!`);}else{p.col=col;p.row=row;}endTurn();}
 function doMark(p,col,row){const t=gp(col,row);if(t){t.marked=p.type;addLog(`P${p.pl} marks ${pLabel(t)}`);}endTurn();}
 function doDetonate(p,col,row){const t=gp(col,row);if(!t||!t.marked)return;addLog(`P${p.pl} DETONATES ${pLabel(t)}!`);explode(t,p);endTurn();}
