@@ -384,6 +384,12 @@ function renderBtns(){
         const tgts=borrowTargets(p,src,ep[0],ep[1]);
         if(tgts.length){const b2=document.createElement('button');b2.className='action-btn';b2.textContent=`🌒 Borrow ${pLabel(src)}`;b2.onclick=()=>{actionMode='ninja-borrow-'+src.id;validActions=tgts;document.querySelectorAll('.action-btn').forEach(x=>x.classList.remove('active'));b2.classList.add('active');draw();};el.appendChild(b2);}
       });
+    } else if(ninjaPath.length>0){
+      const end=document.createElement('button');end.className='action-btn';end.textContent='✓ End Turn';end.onclick=async()=>{await checkPromo(p);endTurn();};el.appendChild(end);
+      ninjaSources(p,ninjaPath).forEach(src=>{
+        const tgts=borrowTargets(p,src,p.col,p.row);
+        if(tgts.length){const b2=document.createElement('button');b2.className='action-btn';b2.textContent=`🌒 Borrow ${pLabel(src)}`;b2.onclick=()=>{actionMode='ninja-borrow-'+src.id;validActions=tgts;document.querySelectorAll('.action-btn').forEach(x=>x.classList.remove('active'));b2.classList.add('active');draw();};el.appendChild(b2);}
+      });
     }
   }
 }
@@ -418,7 +424,7 @@ async function handleClick(col,row){
     const tgt=validActions.find(a=>a.col===col&&a.row===row);const np=gpid(selected);
     if(tgt&&np){
       ninjaPath.push([col,row]);ninjaLeft--;
-      if(ninjaLeft===0){np.col=col;np.row=row;addLog(`Ninja moves (6 steps)`);await checkPromo(np);endTurn();}
+      if(ninjaLeft===0){np.col=col;np.row=row;addLog(`Ninja moves (6 steps)`);actionMode=null;validActions=[];renderBtns();draw();}
       else{validActions=ninjaSteps(np,ninjaPath);renderBtns();draw();}
     }return;
   }
