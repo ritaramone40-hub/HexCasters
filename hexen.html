@@ -305,8 +305,10 @@ async function checkPromo(piece){
   const c=await showPromo();
   if(c==='ninja')piece.type='ninja';
   else if(c==='lancer')piece.type='lancer';
-  else{const mx=Math.max(...gs.pieces.map(p=>p.id));gs.pieces.push({id:mx+1,pl:piece.pl,type:piece.type==='matter'?'antimatter':'matter',col:piece.col,row:piece.row,marked:false,immob:0});addLog(`Promotes → new pawn!`);return;}
-  addLog(`Pawn → ${c}!`);
+  else piece.type=piece.type==='matter'?'antimatter':'matter';
+  piece.marked=false;
+  addLog(`Pawn promotes → ${c}!`);
+  draw();
 }
 function showPromo(){
   return new Promise(r=>{
