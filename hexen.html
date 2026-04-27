@@ -212,6 +212,7 @@ function copyCode(){
 // ── State → UI ─────────────────────────────────────────────
 function pName(p){return p===1?(gs.p1||'P1'):(gs.p2||'P2');}
 function pLabel(p){if(!p)return'?';return{matter:'M+',antimatter:'A−',lancer:'L',ninja:'N'}[p.type]||'?';}
+function pPos(p){if(!p)return'';const col=String.fromCharCode(65+p.col);return`${col}${p.row+1}`;}
 function isMyTurn(){return gs&&gs.turn===myPlayer&&!gs.winner&&gs.p2;}
 
 function applyState(){
@@ -295,9 +296,10 @@ async function endTurn(){
 }
 function explode(target,detonator){
   const adj=nbrs(target.col,target.row).map(([c,r])=>gp(c,r)).filter(p=>p&&p.marked&&p.id!==target.id&&(!detonator||p.id!==detonator.id));
-  rm(target.id);addLog(`💥 ${pLabel(target)} (P${target.pl}) explodes!`);
-  if(detonator&&gpid(detonator.id)){rm(detonator.id);addLog(`💥 ${pLabel(detonator)} dies!`);}
-  for(const a of adj)if(gpid(a.id)){addLog(`🔗 Chain!`);explode(a,null);}
+  const tpos=pPos(target);
+  rm(target.id);addLog(`💥 ${pLabel(target)}@${tpos} (P${target.pl}) explodes!`);
+  if(detonator&&gpid(detonator.id)){rm(detonator.id);addLog(`💥 ${pLabel(detonator)}@${pPos(detonator)} dies!`);}
+  for(const a of adj)if(gpid(a.id)){addLog(`🔗 Chain: ${pLabel(a)}@${pPos(a)}`);explode(a,null);}
 }
 function findSpawnPos(player){
   const center=Math.floor(COLS/2);
@@ -366,7 +368,7 @@ async function doNinja(ninja,src,tc,tr,ec,er){
 // ── UI ─────────────────────────────────────────────────────
 function updateSelUI(){
   const sn=document.getElementById('sel-name'),sm=document.getElementById('sel-meta');
-  if(selected!==null){const p=gpid(selected);if(p){sn.textContent=pLabel(p);sn.style.color=p.pl===1?'var(--p1l)':'var(--p2l)';sm.textContent=[(p.marked?'● marked':''),(p.immob>0?'★ frozen':'')].filter(Boolean).join(' · ')||'Ready';}}
+  if(selected!==null){const p=gpid(selected);if(p){sn.textContent=`${pLabel(p)} @ ${pPos(p)}`;sn.style.color=p.pl===1?'var(--p1l)':'var(--p2l)';sm.textContent=[(p.marked?'● marked('+p.marked+')'),(p.immob>0?'★ frozen':'')].filter(Boolean).join(' · ')||'Ready';}}
   else{sn.textContent='—';sn.style.color='var(--text)';sm.textContent='';}
 }
 function renderBtns(){
