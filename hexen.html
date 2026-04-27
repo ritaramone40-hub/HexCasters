@@ -100,6 +100,7 @@ canvas{display:block;cursor:pointer;border-radius:8px;max-width:100%;}
         </div>
       </div>
       <div class="ps"><h3>Selected</h3><div id="sel-name" style="font-size:14px">—</div><div id="sel-meta" style="font-size:11px;color:var(--muted)"></div></div>
+      <div class="ps"><h3>Mode</h3><button id="ricochet-toggle" class="action-btn">⚡ Ricochet: OFF</button></div>
       <div class="ps"><h3>Actions</h3><div id="action-btns"></div></div>
       <div class="ps">
         <h3>Legend</h3>
@@ -107,6 +108,7 @@ canvas{display:block;cursor:pointer;border-radius:8px;max-width:100%;}
         <div class="li"><div class="ld" style="background:var(--p2l)"></div>Coral = Player 2</div>
         <div class="li"><div class="ld" style="border:2px dashed #e8a020;background:none"></div>Marked by M+</div>
         <div class="li"><div class="ld" style="border:2px dashed #c040c0;background:none"></div>Marked by A−</div>
+        <div class="li"><div class="ld" style="border:2px dashed #40c0c0;background:none"></div>Marked by L (ricochet)</div>
         <div class="li"><div class="ld" style="border:2px dashed var(--immob);background:none"></div>Frozen ★</div>
         <div style="font-size:10px;color:var(--muted);margin-top:6px;line-height:1.7">M+ = Matter · A− = Antimatter<br>L = Lancer · N = Ninja</div>
       </div>
@@ -354,8 +356,37 @@ async function doMove(p,col,row){const oc=p.col,or=p.row;p.col=col;p.row=row;add
 async function doLaunch(p,col,row){const t=gp(col,row);if(t&&t.pl!==p.pl){addLog(`Lancer destroys ${pLabel(t)}!`);rm(t.id);rm(p.id);addLog(`Lancer self-destructs!`);}else{p.col=col;p.row=row;}endTurn();}
 function doMark(p,col,row){const t=gp(col,row);if(t){t.marked=p.type;addLog(`P${p.pl} marks ${pLabel(t)}`);}endTurn();}
 function doDetonate(p,col,row){const t=gp(col,row);if(!t||!t.marked)return;addLog(`P${p.pl} DETONATES ${pLabel(t)}!`);explode(t,p);endTurn();}
+let ricochetMode=false;
+function lancerRaysRicochet(p){
+  if(p.immob>0)return[];
+  const targets=[],seen=new Set();
+  for(const[nc,nr]of nbrs(p.col,p.row)){
+    const dc=nc-p.col,dr=nr-p.row;
+    let first=null;
+    for(const[pc,pr]of slide(p.col,p.row,dc,dr)){const o=gp(pc,pr);if(o){first=o;break;}}
+    if(!first)continue;
+    if(first.pl!==p.pl){
+      const k=`${first.col},${first.row}`;if(!seen.has(k)){seen.add(k);targets.push({col:first.col,row:first.row,type:'attack'});}
+    }else if(first.type==='matter'||first.type==='antimatter'){
+      for(const[nc2,nr2]of nbrs(first.col,first.row)){
+        const dc2=nc2-first.col,dr2=nr2-first.row;
+        for(const[pc2,pr2]of slide(first.col,first.row,dc2,dr2)){const o2=gp(pc2,pr2);if(o2){if(o2.pl!==p.pl){const k=`${o2.col},${o2.row}`;if(!seen.has(k)){seen.add(k);targets.push({col:o2.col,row:o2.row,type:'attack'});}}break;}}
+      }
+    }
+  }
+  return targets;
+}
+function getRicochetMirrors(p){
+  if(!p||p.type!=='lancer'||p.immob>0)return new Set();
+  const mirrors=new Set();
+  for(const[nc,nr]of nbrs(p.col,p.row)){
+    const dc=nc-p.col,dr=nr-p.row;
+    for(const[pc,pr]of slide(p.col,p.row,dc,dr)){const o=gp(pc,pr);if(o){if(o.pl===p.pl&&(o.type==='matter'||o.type==='antimatter'))mirrors.add(o.id);break;}}
+  }
+  return mirrors;
+}
 // immob=2: endTurn decrements to 1 before opponent's turn, then to 0 after frozen player's turn — one full frozen round
-function doFreeze(p,col,row){const t=gp(col,row);if(t){t.immob=2;addLog(`P${p.pl} freezes ${pLabel(t)} ★`);}endTurn();}
+function doFreeze(p,col,row){const t=gp(col,row);if(t){t.immob=2;if(ricochetMode)t.marked='lancer';addLog(`P${p.pl} ${ricochetMode?'ricochets':'freezes'} ${pLabel(t)}@${pPos(t)} ★${ricochetMode?' +mark':''}`);}endTurn();}
 async function doNinja(ninja,src,tc,tr,ec,er){
   ninja.col=ec;ninja.row=er;
   if(src.type==='lancer'){const t=gp(tc,tr);if(t){t.immob=2;addLog(`Ninja freezes ${pLabel(t)} ★`);}}
@@ -382,7 +413,7 @@ function renderBtns(){
     b.onclick=()=>{actionMode=mode;validActions=targets;document.querySelectorAll('.action-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');draw();};
     el.appendChild(b);
   }
-  if(p.type==='lancer'){btn('🚀 Launch','launch',lancerLaunches(p));btn('★ Freeze ray','freeze',lancerRays(p));}
+  if(p.type==='lancer'){btn('🚀 Launch','launch',lancerLaunches(p));btn(ricochetMode?'⚡ Ricochet ray':'★ Freeze ray','freeze',ricochetMode?lancerRaysRicochet(p):lancerRays(p));}
   if(p.type==='matter'||p.type==='antimatter'){btn('● Mark','mark',markTargets(p));btn('💥 Detonate','detonate',detTargets(p));}
   if(p.type==='ninja'){
     if(ninjaLeft===0&&!ninjaPath.length){
@@ -413,6 +444,13 @@ function fromXY(x,y){let best=null,bd=Infinity;for(let r=0;r<ROWS;r++)for(let c=
 canvas.addEventListener('click',e=>{const rect=canvas.getBoundingClientRect();const sx=canvas.width/rect.width,sy=canvas.height/rect.height;const cell=fromXY((e.clientX-rect.left)*sx,(e.clientY-rect.top)*sy);if(cell)handleClick(cell.col,cell.row);});
 canvas.addEventListener('mousemove',e=>{const rect=canvas.getBoundingClientRect();const sx=canvas.width/rect.width,sy=canvas.height/rect.height;hover=fromXY((e.clientX-rect.left)*sx,(e.clientY-rect.top)*sy);draw();});
 canvas.addEventListener('mouseleave',()=>{hover=null;draw();});
+document.getElementById('ricochet-toggle').addEventListener('click',function(){
+  ricochetMode=!ricochetMode;
+  this.textContent=`⚡ Ricochet: ${ricochetMode?'ON':'OFF'}`;
+  this.style.color=ricochetMode?'var(--gold)':'';
+  this.style.borderColor=ricochetMode?'var(--gold)':'';
+  if(selected!==null){renderBtns();draw();}
+});
 
 async function handleClick(col,row){
   if(!isMyTurn())return;
@@ -456,6 +494,8 @@ function draw(){
   const as=new Set(validActions.map(a=>`${a.col},${a.row}`));
   const at={};validActions.forEach(a=>at[`${a.col},${a.row}`]=a.type);
   const nv=new Set(ninjaPath.map(([c,r])=>`${c},${r}`));
+  const selP=selected!==null?gpid(selected):null;
+  const mirrors=ricochetMode?getRicochetMirrors(selP):new Set();
   for(let row=0;row<ROWS;row++)for(let col=0;col<COLS;col++){
     const{x,y}=hc(col,row);const corners=hcorners(x,y,HEX_R-1.5);
     const key=`${col},${row}`;const p=gp(col,row);
@@ -478,12 +518,13 @@ function draw(){
     else if(isSel)ctx.strokeStyle='#c8a84b';
     else ctx.strokeStyle='#2a2218';
     ctx.lineWidth=(isSel||isM||isA)?1.5:0.5;ctx.stroke();
-    if(p)drawPiece(p,x,y);
+    if(p)drawPiece(p,x,y,mirrors.has(p.id));
   }
 }
-function drawPiece(p,x,y){
+function drawPiece(p,x,y,isMirror){
   const cl=p.pl===1?'#4a8fd4':'#d4604a';const cll=p.pl===1?'#7ab8f5':'#f59078';const r=HEX_R*0.5;
-  if(p.marked){ctx.beginPath();ctx.arc(x,y,r+5,0,Math.PI*2);ctx.strokeStyle=p.marked==='antimatter'?'#c040c0':'#e8a020';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);}
+  if(isMirror){ctx.beginPath();ctx.arc(x,y,r+11,0,Math.PI*2);ctx.strokeStyle='#c8a84b';ctx.lineWidth=2;ctx.setLineDash([3,2]);ctx.stroke();ctx.setLineDash([]);}
+  if(p.marked){ctx.beginPath();ctx.arc(x,y,r+5,0,Math.PI*2);ctx.strokeStyle=p.marked==='lancer'?'#40c0c0':p.marked==='antimatter'?'#c040c0':'#e8a020';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);}
   if(p.immob>0){ctx.beginPath();ctx.arc(x,y,r+8,0,Math.PI*2);ctx.strokeStyle='#9060d0';ctx.lineWidth=2.5;ctx.setLineDash([]);ctx.stroke();}
   ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=cl+'22';ctx.fill();ctx.strokeStyle=cl;ctx.lineWidth=1.5;ctx.stroke();
   ctx.fillStyle=cll;ctx.textAlign='center';ctx.textBaseline='middle';
