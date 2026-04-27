@@ -176,21 +176,25 @@ async function createRoom(){
   myName=document.getElementById('player-name').value.trim()||'Player 1';
   myPlayer=1;roomCode=makeCode();
   setLobbyMsg('Creating room…');
-  gs=newGame(myName,'');
-  await apiPost(roomCode,gs);
-  enterGame();connectSSE(roomCode);
+  try{
+    gs=newGame(myName,'');
+    await apiPost(roomCode,gs);
+    enterGame();connectSSE(roomCode);
+  }catch(e){setLobbyMsg('Cannot reach server. Is Railway running? ('+e.message+')');}
 }
 async function joinRoom(){
   myName=document.getElementById('player-name').value.trim()||'Player 2';
   const code=document.getElementById('room-code-input').value.trim().toUpperCase();
   if(!code){setLobbyMsg('Enter a room code.');return;}
   setLobbyMsg('Joining…');roomCode=code;
-  const st=await apiGet(code);
-  if(!st){setLobbyMsg('Room not found. Check the code.');return;}
-  if(st.p2){setLobbyMsg('Room is full.');return;}
-  myPlayer=2;st.p2=myName;st.ts=Date.now();gs=st;
-  await apiPost(roomCode,gs);
-  enterGame();connectSSE(roomCode);
+  try{
+    const st=await apiGet(code);
+    if(!st){setLobbyMsg('Room not found. Check the code.');return;}
+    if(st.p2){setLobbyMsg('Room is full.');return;}
+    myPlayer=2;st.p2=myName;st.ts=Date.now();gs=st;
+    await apiPost(roomCode,gs);
+    enterGame();connectSSE(roomCode);
+  }catch(e){setLobbyMsg('Cannot reach server. Is Railway running? ('+e.message+')');}
 }
 function enterGame(){
   document.getElementById('lobby').style.display='none';
