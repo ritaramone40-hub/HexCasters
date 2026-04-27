@@ -354,6 +354,7 @@ async function doMove(p,col,row){const oc=p.col,or=p.row;p.col=col;p.row=row;add
 async function doLaunch(p,col,row){const t=gp(col,row);if(t&&t.pl!==p.pl){addLog(`Lancer destroys ${pLabel(t)}!`);rm(t.id);rm(p.id);addLog(`Lancer self-destructs!`);}else{p.col=col;p.row=row;}endTurn();}
 function doMark(p,col,row){const t=gp(col,row);if(t){t.marked=p.type;addLog(`P${p.pl} marks ${pLabel(t)}`);}endTurn();}
 function doDetonate(p,col,row){const t=gp(col,row);if(!t||!t.marked)return;addLog(`P${p.pl} DETONATES ${pLabel(t)}!`);explode(t,p);endTurn();}
+// immob=2: endTurn decrements to 1 before opponent's turn, then to 0 after frozen player's turn — one full frozen round
 function doFreeze(p,col,row){const t=gp(col,row);if(t){t.immob=2;addLog(`P${p.pl} freezes ${pLabel(t)} ★`);}endTurn();}
 async function doNinja(ninja,src,tc,tr,ec,er){
   ninja.col=ec;ninja.row=er;
