@@ -404,7 +404,7 @@ async function doNinja(ninja,src,tc,tr,ec,er){
 // ── UI ─────────────────────────────────────────────────────
 function updateSelUI(){
   const sn=document.getElementById('sel-name'),sm=document.getElementById('sel-meta');
-  if(selected!==null){const p=gpid(selected);if(p){sn.textContent=`${pLabel(p)} @ ${pPos(p)}`;sn.style.color=p.pl===1?'var(--p1l)':'var(--p2l)';sm.textContent=[(p.marked?'● marked('+p.marked+')'),(p.immob>0?'★ frozen':'')].filter(Boolean).join(' · ')||'Ready';}}
+  if(selected!==null){const p=gpid(selected);if(p){sn.textContent=`${pLabel(p)} @ ${pPos(p)}`;sn.style.color=p.pl===1?'var(--p1l)':'var(--p2l)';sm.textContent=[(p.marked?'● marked('+p.marked+')':''),(p.immob>0?'★ frozen':'')].filter(Boolean).join(' · ')||'Ready';}}
   else{sn.textContent='—';sn.style.color='var(--text)';sm.textContent='';}
 }
 function renderBtns(){
