@@ -131,7 +131,7 @@ const WORDS=['WOLF','ROOK','JADE','IRON','MIST','DUSK','CROW','FERN','OPAL','PIK
 // ── App state ──────────────────────────────────────────────
 let myPlayer=0,myName='',roomCode='',gs=null,pollTimer=null;
 let selected=null,actionMode=null,validMoves=[],validActions=[],hover=null;
-let ninjaPath=[],ninjaLeft=0;
+let ninjaPath=[],ninjaLeft=0,ricochetMirrorPawn=null;
 
 // ── Server helpers ─────────────────────────────────────────
 async function apiGet(code){
@@ -147,7 +147,7 @@ function connectSSE(code){
   pollTimer=setInterval(async()=>{
     const st=await apiGet(code);
     if(st&&st.ts!==gs?.ts){
-      gs=st;selected=null;actionMode=null;validMoves=[];validActions=[];ninjaPath=[];ninjaLeft=0;
+      gs=st;selected=null;actionMode=null;validMoves=[];validActions=[];ninjaPath=[];ninjaLeft=0;ricochetMirrorPawn=null;
       applyState();renderBtns();
     }
   },2000);
@@ -296,7 +296,7 @@ function checkWinner(){const a=gs.pieces.filter(p=>p.pl===1).length,b=gs.pieces.
 async function endTurn(){
   for(const p of gs.pieces)if(p.immob>0)p.immob=Math.max(0,p.immob-1);
   checkWinner();gs.turn=gs.turn===1?2:1;gs.ts=Date.now();
-  selected=null;actionMode=null;validMoves=[];validActions=[];ninjaPath=[];ninjaLeft=0;
+  selected=null;actionMode=null;validMoves=[];validActions=[];ninjaPath=[];ninjaLeft=0;ricochetMirrorPawn=null;
   await apiPost(roomCode,gs);  // push to server → SSE broadcasts to opponent
   applyState();renderBtns();draw();
 }
@@ -380,6 +380,15 @@ function lancerRaysRicochet(p){
   }
   return targets;
 }
+function lancerMirrorTargets(p){
+  if(p.immob>0)return[];
+  const t=[];
+  for(const[nc,nr]of nbrs(p.col,p.row)){
+    const dc=nc-p.col,dr=nr-p.row;
+    for(const[pc,pr]of slide(p.col,p.row,dc,dr)){const o=gp(pc,pr);if(o){if(o.pl===p.pl&&(o.type==='matter'||o.type==='antimatter'))t.push({col:o.col,row:o.row,type:'move'});break;}}
+  }
+  return t;
+}
 function getRicochetMirrors(p){
   if(!p||p.type!=='lancer'||p.immob>0)return new Set();
   const mirrors=new Set();
@@ -417,7 +426,24 @@ function renderBtns(){
     b.onclick=()=>{actionMode=mode;validActions=targets;document.querySelectorAll('.action-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');draw();};
     el.appendChild(b);
   }
-  if(p.type==='lancer'){btn('🚀 Launch','launch',lancerLaunches(p));btn(ricochetMode?'⚡ Ricochet ray':'★ Freeze ray','freeze',ricochetMode?lancerRaysRicochet(p):lancerRays(p));}
+  if(p.type==='lancer'){
+    btn('🚀 Launch','launch',lancerLaunches(p));
+    if(ricochetMode){
+      const mirrorTgts=lancerMirrorTargets(p),directTgts=lancerRays(p),step1=[...mirrorTgts,...directTgts];
+      if(step1.length){
+        const rb=document.createElement('button');rb.className='action-btn'+(actionMode==='ricochet-mirror'||actionMode==='ricochet-target'?' active':'');rb.textContent='⚡ Ricochet ray';
+        rb.onclick=()=>{actionMode='ricochet-mirror';ricochetMirrorPawn=null;validActions=step1;document.querySelectorAll('.action-btn').forEach(x=>x.classList.remove('active'));rb.classList.add('active');draw();};
+        el.appendChild(rb);
+      }
+      if(actionMode==='ricochet-target'){
+        const bk=document.createElement('button');bk.className='action-btn';bk.textContent='← Back';
+        bk.onclick=()=>{const mirrorTgts2=lancerMirrorTargets(p),directTgts2=lancerRays(p);actionMode='ricochet-mirror';ricochetMirrorPawn=null;validActions=[...mirrorTgts2,...directTgts2];renderBtns();draw();};
+        el.appendChild(bk);
+      }
+    } else {
+      btn('★ Freeze ray','freeze',lancerRays(p));
+    }
+  }
   if(p.type==='matter'||p.type==='antimatter'){btn('● Mark','mark',markTargets(p));btn('💥 Detonate','detonate',detTargets(p));}
   if(p.type==='ninja'){
     if(ninjaLeft===0&&!ninjaPath.length){
@@ -465,6 +491,23 @@ async function handleClick(col,row){
     if(tgt&&np&&src){const ep=ninjaPath.length?ninjaPath[ninjaPath.length-1]:[np.col,np.row];await doNinja(np,src,col,row,ep[0],ep[1]);}
     else{actionMode=null;validActions=[];draw();}return;
   }
+  if(actionMode==='ricochet-mirror'){
+    const tgt=validActions.find(a=>a.col===col&&a.row===row);const sel=gpid(selected);
+    if(tgt&&sel){
+      const clicked=gp(col,row);
+      if(clicked&&clicked.pl===sel.pl){
+        ricochetMirrorPawn=clicked;actionMode='ricochet-target';
+        const seen=new Set();validActions=[];
+        for(const[nc,nr]of nbrs(clicked.col,clicked.row)){const dc2=nc-clicked.col,dr2=nr-clicked.row;for(const[pc2,pr2]of slide(clicked.col,clicked.row,dc2,dr2)){const o2=gp(pc2,pr2);if(o2){if(o2.pl!==sel.pl){const k=`${o2.col},${o2.row}`;if(!seen.has(k)){seen.add(k);validActions.push({col:o2.col,row:o2.row,type:'attack'});}}break;}}}
+        renderBtns();draw();
+      }else{doFreeze(sel,col,row);}
+    }else{actionMode=null;ricochetMirrorPawn=null;validActions=[];renderBtns();draw();}return;
+  }
+  if(actionMode==='ricochet-target'){
+    const tgt=validActions.find(a=>a.col===col&&a.row===row);const sel=gpid(selected);
+    if(tgt&&sel){doFreeze(sel,col,row);}
+    else{actionMode=null;ricochetMirrorPawn=null;validActions=[];renderBtns();draw();}return;
+  }
   if(actionMode&&actionMode!=='ninja-step'){
     const tgt=validActions.find(a=>a.col===col&&a.row===row);const sel=gpid(selected);
     if(tgt&&sel){
@@ -486,7 +529,7 @@ async function handleClick(col,row){
   if(piece&&piece.pl===myPlayer&&isMyTurn()){
     selected=piece.id;actionMode=null;ninjaPath=[];ninjaLeft=0;
     validMoves=walkMoves(piece);validActions=[];renderBtns();updateSelUI();draw();
-  }else{selected=null;actionMode=null;validMoves=[];validActions=[];ninjaPath=[];ninjaLeft=0;renderBtns();updateSelUI();draw();}
+  }else{selected=null;actionMode=null;validMoves=[];validActions=[];ninjaPath=[];ninjaLeft=0;ricochetMirrorPawn=null;renderBtns();updateSelUI();draw();}
 }
 
 function draw(){
@@ -499,7 +542,7 @@ function draw(){
   const at={};validActions.forEach(a=>at[`${a.col},${a.row}`]=a.type);
   const nv=new Set(ninjaPath.map(([c,r])=>`${c},${r}`));
   const selP=selected!==null?gpid(selected):null;
-  const mirrors=ricochetMode?getRicochetMirrors(selP):new Set();
+  const mirrors=ricochetMode&&selP?(actionMode==='ricochet-target'&&ricochetMirrorPawn?new Set([ricochetMirrorPawn.id]):getRicochetMirrors(selP)):new Set();
   for(let row=0;row<ROWS;row++)for(let col=0;col<COLS;col++){
     const{x,y}=hc(col,row);const corners=hcorners(x,y,HEX_R-1.5);
     const key=`${col},${row}`;const p=gp(col,row);
